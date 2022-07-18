@@ -1,0 +1,57 @@
+version: "3.8"
+services:
+  tempo:
+    image: grafana/tempo:latest
+    command: [ "-search.enabled=true", "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - .docker/tempo.yaml:/etc/tempo.yaml
+      - .docker/overrides.yaml:/etc/overrides.yaml
+      - .docker/tempo-data/:/tmp/tempo
+    ports:
+      - "3200:3200"   # tempo
+      - "14268:14268"  # jaeger ingest
+      - "4317:4317"  # otlp grpc
+      - "4318:4318"  # otlp http
+
+  prometheus:
+    image: prom/prometheus:latest
+    command: [ "--config.file=/etc/prometheus.yaml" ]
+    volumes:
+      - .docker/prometheus.yaml:/etc/prometheus.yaml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:main   # track main as search is under active development
+    volumes:
+      - .docker/grafana.ini:/etc/grafana/grafana.ini
+      - .docker/grafana-data-sources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    ports:
+      - "3000:3000"
+
+
+  #  Commenting out because Grafana UI has search enabled. Uncomment if you want to use the Jaeger UI!
+  #
+  tempo-query:
+    image: grafana/tempo-query:latest
+    command: [ "--grpc-storage-plugin.configuration-file=/etc/tempo-query.yaml" ]
+    volumes:
+      - .docker/tempo-query.yaml:/etc/tempo-query.yaml
+    ports:
+      - "16686:16686"  # jaeger-ui
+    depends_on:
+      - tempo
+
+  #  synthetic-load-generator:
+  #    image: omnition/synthetic-load-generator:1.0.25
+  #    volumes:
+  #      - ../shared/load-generator.json:/etc/load-generator.json
+  #    environment:
+  #      - TOPOLOGY_FILE=/etc/load-generator.json
+  #      - JAEGER_COLLECTOR_URL=http://tempo:14268
+  #    depends_on:
+  #      - tempo
