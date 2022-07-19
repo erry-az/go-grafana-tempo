@@ -8,8 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"go-grafana-tempo/pkg/tracer"
-
+	"github.com/erry-az/go-grafana-tempo/pkg/tracer"
 	"github.com/gorilla/mux"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
